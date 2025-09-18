@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import minimalSelectStyles from './minimalSelect.styles';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import FormControl from '@material-ui/core/FormControl';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import { Select, MenuItem, FormControl } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const MinimalSelect = () => {
   const [val,setVal] = useState(1);
