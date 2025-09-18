@@ -136,18 +136,54 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az deployment sub validate \
-              --location ${{ vars.DEPLOYMENTREGION }} \
-              --template-file ./iac/createResourceGroup.bicep \
-              --parameters rgName=${{ env.RESOURCE_GROUP_NAME }} suffix=${{ vars.SUFFIX }} rgLocation=${{ vars.DEPLOYMENTREGION }}
+            # Retry logic for template validation
+            max_attempts=3
+            attempt=1
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts for template validation"
+              if az deployment sub validate \
+                --location ${{ vars.DEPLOYMENTREGION }} \
+                --template-file ./iac/createResourceGroup.bicep \
+                --parameters rgName=${{ env.RESOURCE_GROUP_NAME }} suffix=${{ vars.SUFFIX }} rgLocation=${{ vars.DEPLOYMENTREGION }}; then
+                echo "Template validation succeeded"
+                break
+              else
+                echo "Template validation failed on attempt $attempt"
+                if [ $attempt -eq $max_attempts ]; then
+                  echo "All attempts failed for template validation"
+                  exit 1
+                fi
+                echo "Waiting 10 seconds before retry..."
+                sleep 10
+                attempt=$((attempt + 1))
+              fi
+            done
       - name: create resource group
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az deployment sub create \
-              --location ${{ vars.DEPLOYMENTREGION }} \
-              --template-file ./iac/createResourceGroup.bicep \
-              --parameters rgName=${{ env.RESOURCE_GROUP_NAME }} suffix=${{ vars.SUFFIX }} rgLocation=${{ vars.DEPLOYMENTREGION }}
+            # Retry logic for resource group creation
+            max_attempts=3
+            attempt=1
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts for resource group creation"
+              if az deployment sub create \
+                --location ${{ vars.DEPLOYMENTREGION }} \
+                --template-file ./iac/createResourceGroup.bicep \
+                --parameters rgName=${{ env.RESOURCE_GROUP_NAME }} suffix=${{ vars.SUFFIX }} rgLocation=${{ vars.DEPLOYMENTREGION }}; then
+                echo "Resource group creation succeeded"
+                break
+              else
+                echo "Resource group creation failed on attempt $attempt"
+                if [ $attempt -eq $max_attempts ]; then
+                  echo "All attempts failed for resource group creation"
+                  exit 1
+                fi
+                echo "Waiting 10 seconds before retry..."
+                sleep 10
+                attempt=$((attempt + 1))
+              fi
+            done
       # Next step is to deploy the Azure resources to the resource group `contoso-traders-rg` created above. The deployed resources
       # include storage accounts, function apps, app services cosmos db, and service bus etc.
       # The below step can also be manually executed as follows:
@@ -160,18 +196,54 @@ jobs:
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az deployment group validate \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} \
-              --template-file ./iac/createResources.bicep \
-              --parameters ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }}
+            # Retry logic for resources template validation
+            max_attempts=3
+            attempt=1
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts for resources template validation"
+              if az deployment group validate \
+                --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} \
+                --template-file ./iac/createResources.bicep \
+                --parameters ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }}; then
+                echo "Resources template validation succeeded"
+                break
+              else
+                echo "Resources template validation failed on attempt $attempt"
+                if [ $attempt -eq $max_attempts ]; then
+                  echo "All attempts failed for resources template validation"
+                  exit 1
+                fi
+                echo "Waiting 10 seconds before retry..."
+                sleep 10
+                attempt=$((attempt + 1))
+              fi
+            done
       - name: create resources
         uses: azure/CLI@v1
         with:
           inlineScript: |
-            az deployment group create \
-              --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} \
-              --template-file ./iac/createResources.bicep \
-              --parameters ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }}
+            # Retry logic for resources creation
+            max_attempts=3
+            attempt=1
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt of $max_attempts for resources creation"
+              if az deployment group create \
+                --resource-group ${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }} \
+                --template-file ./iac/createResources.bicep \
+                --parameters ./iac/createResources.parameters.json suffix=${{ vars.SUFFIX }} sqlPassword=${{ secrets.SQLPASSWORD }} deployPrivateEndpoints=${{ vars.DEPLOYPRIVATEENDPOINTS }}; then
+                echo "Resources creation succeeded"
+                break
+              else
+                echo "Resources creation failed on attempt $attempt"
+                if [ $attempt -eq $max_attempts ]; then
+                  echo "All attempts failed for resources creation"
+                  exit 1
+                fi
+                echo "Waiting 10 seconds before retry..."
+                sleep 10
+                attempt=$((attempt + 1))
+              fi
+            done
       # Add the logged-in service principal to the key vault access policy
       - name: add service principal to kv access policy
         uses: azure/CLI@v1
